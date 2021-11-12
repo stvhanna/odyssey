@@ -5,8 +5,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-static void
-coroutine(void *arg)
+static void coroutine(void *arg)
 {
 	(void)arg;
 
@@ -14,8 +13,11 @@ coroutine(void *arg)
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGINT);
 
+	sigset_t ignore;
+	sigemptyset(&ignore);
+
 	int rc;
-	rc = machine_signal_init(&mask);
+	rc = machine_signal_init(&mask, &ignore);
 	test(rc == 0);
 
 	rc = kill(getpid(), SIGINT);
@@ -28,8 +30,7 @@ coroutine(void *arg)
 	test(rc == -1);
 }
 
-void
-machinarium_test_signal1(void)
+void machinarium_test_signal1(void)
 {
 	sigset_t mask;
 	sigemptyset(&mask);

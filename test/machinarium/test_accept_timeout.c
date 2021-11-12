@@ -4,8 +4,7 @@
 
 #include <arpa/inet.h>
 
-static void
-test_server(void *arg)
+static void test_server(void *arg)
 {
 	(void)arg;
 	machine_io_t *server = machine_io_create();
@@ -16,7 +15,8 @@ test_server(void *arg)
 	sa.sin_addr.s_addr = inet_addr("127.0.0.1");
 	sa.sin_port = htons(7778);
 	int rc;
-	rc = machine_bind(server, (struct sockaddr*)&sa);
+	rc = machine_bind(server, (struct sockaddr *)&sa,
+			  MM_BINDWITH_SO_REUSEADDR);
 	test(rc == 0);
 
 	machine_io_t *client;
@@ -30,8 +30,7 @@ test_server(void *arg)
 	machine_io_free(server);
 }
 
-void
-machinarium_test_accept_timeout(void)
+void machinarium_test_accept_timeout(void)
 {
 	machinarium_init();
 

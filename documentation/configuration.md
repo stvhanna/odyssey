@@ -47,6 +47,11 @@ Set `unix_socket_mode` file mode to any created unix files.
 
 `unix_socket_mode "0755"`
 
+#### locks_dir *string*
+
+If `locks_dir` is specified, directory path will be used for 
+placing lock files.
+
 #### log\_file *string*
 
 If log\_file is specified, Odyssey will additionally use it to write
@@ -66,7 +71,8 @@ Supported flags:
 
 ```
 %n = unixtime
-%t = timestamp with date
+%t = timestamp with date in iso 8601 format
+%e = millisEcond
 %p = process ID
 %i = client ID
 %s = server ID
@@ -80,7 +86,7 @@ Supported flags:
 %h = client host
 ```
 
-`log_format "%p %t %l [%i %s] (%c) %m\n"`
+`log_format "%p %t %e %l [%i %s] (%c) %m\n"`
 
 #### log\_to\_stdout *yes|no*
 
@@ -144,6 +150,12 @@ Periodically display information about active routes.
 
 `log_stats yes`
 
+#### log\_stats_prom *yes|no*
+
+Write information about active routes in Prometheus format in addition to ordinary format. Requires [C Prometheus client library](https://github.com/digitalocean/prometheus-client-c) installed.
+
+`log_stats_prom no`
+
 #### stats\_interval *integer*
 
 Set interval in seconds for internal statistics update and log report.
@@ -196,7 +208,28 @@ TCP nodelay. Set to 'yes', to enable nodelay.
 
 TCP keepalive time. Set to zero, to disable keepalive.
 
-`keepalive 7200`
+`keepalive 15`
+
+#### keepalive_keep_interval *integer*
+
+The number of seconds between TCP keep-alive probes.
+5 by default.
+
+`keepalive_keep_interval 10`
+
+#### keepalive_probes *integer*
+
+TCP keep-alive probes to send before  giving  up  and  killing  the connection if no response is obtained.
+3 by default.
+
+`keepalive_probes 5`
+
+
+#### keepalive_usr_timeout *integer*
+When the value is greater than 0, it specifies the maximum amount of time in milliseconds that transmitted data may remain unacknowledged before TCP will forcibly close the
+corresponding connection
+
+`keepalive_usr_timeout 7`
 
 #### coroutine\_stack\_size *integer*
 
@@ -271,6 +304,12 @@ listen
 }
 ```
 
+#### compression *yes|no*
+
+Support of PostgreSQL protocol compression (experimental). Set to 'yes' to enable, disabled by default.
+
+`compression no`
+
 ### Routing rules
 
 Odyssey allows to define client routing rules by specifying
@@ -297,6 +336,9 @@ Set storage type to use. Supported types:
 
 `type "remote"`
 
+#### Local console
+Local console supports RELOAD, SHOW and KILL_CLIENT commands.
+
 #### host *string*
 
 Remote server address.
@@ -307,6 +349,15 @@ If host is not set, Odyssey will try to connect using UNIX socket if
 #### port *integer*
 
 Remote server port.
+
+#### bindwith_reuseport *yes|no*
+
+If specified, odyssey will bind socket with SO_REUSEPORT option.
+
+##### graceful_die_on_errors *yes|no*
+
+If specified, after receiving the singal SIGUSR2, 
+Odyssey will shutdown the socket for receptions and continue working only with old connections
 
 #### tls *string*
 
@@ -398,7 +449,7 @@ Use matched route server to send 'auth\_query' to get username and password need
 to authenticate a client.
 
 ```
-auth_query "select username, pass from auth where username='%u'"
+auth_query "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"
 auth_query_db ""
 auth_query_user ""
 ```
@@ -440,6 +491,17 @@ storage "postgres_server"
 #storage_user "test"
 #storage_password "test"
 ```
+
+
+#### password\_passthrough *bool*
+
+By default odyssey authenticate users itself, but if side auth application is used,
+like LDAP server, PAM module, or custom auth module, sometimes, 
+instead of configuring `storage_password`, it is more convenient to reuse
+client-provided password to perform backend auth. If you set this option to "yes"
+Odyssey will store client token and use when new server connection is Opened. Anyway, if
+you configure `storage_password` for route, `password_passthrough` is essentially ignored
+
 
 #### pool *string*
 
@@ -534,7 +596,7 @@ database default {
 #		password ""
 #		auth_common_name default
 #		auth_common_name "test"
-#		auth_query "select username, pass from auth where username='%u'"
+#		auth_query "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"
 #		auth_query_db ""
 #		auth_query_user ""
 #		client_max 100

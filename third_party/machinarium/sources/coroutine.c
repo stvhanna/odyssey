@@ -3,7 +3,7 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #include <machinarium.h>
 #include <machinarium_private.h>
@@ -20,8 +20,7 @@ void mm_coroutine_init(mm_coroutine_t *coroutine)
 	mm_list_init(&coroutine->link_join);
 }
 
-mm_coroutine_t*
-mm_coroutine_allocate(int stack_size, int stack_size_guard)
+mm_coroutine_t *mm_coroutine_allocate(int stack_size, int stack_size_guard)
 {
 	mm_coroutine_t *coroutine;
 	coroutine = malloc(sizeof(mm_coroutine_t));
@@ -29,7 +28,8 @@ mm_coroutine_allocate(int stack_size, int stack_size_guard)
 		return NULL;
 	mm_coroutine_init(coroutine);
 	int rc;
-	rc = mm_contextstack_create(&coroutine->stack, stack_size, stack_size_guard);
+	rc = mm_contextstack_create(&coroutine->stack, stack_size,
+				    stack_size_guard);
 	if (rc == -1) {
 		free(coroutine);
 		return NULL;

@@ -5,26 +5,24 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 typedef struct mm_timer mm_timer_t;
 
-typedef void (*mm_timer_callback_t)(mm_timer_t*);
+typedef void (*mm_timer_callback_t)(mm_timer_t *);
 
-struct mm_timer
-{
-	int                  active;
-	uint64_t             timeout;
-	uint32_t             interval;
-	int                  seq;
-	mm_timer_callback_t  callback;
-	void                *arg;
-	void                *clock;
+struct mm_timer {
+	int active;
+	uint64_t timeout;
+	uint32_t interval;
+	int seq;
+	mm_timer_callback_t callback;
+	void *arg;
+	void *clock;
 };
 
-static inline void
-mm_timer_init(mm_timer_t *timer, mm_timer_callback_t cb, void *arg,
-              uint32_t interval)
+static inline void mm_timer_init(mm_timer_t *timer, mm_timer_callback_t cb,
+				 void *arg, uint32_t interval)
 {
 	timer->active = 0;
 	timer->interval = interval;

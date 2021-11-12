@@ -5,8 +5,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-static void
-server(void *arg)
+static void server(void *arg)
 {
 	(void)arg;
 	machine_io_t *server = machine_io_create();
@@ -17,7 +16,8 @@ server(void *arg)
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = inet_addr("127.0.0.1");
 	sa.sin_port = htons(7778);
-	rc = machine_bind(server, (struct sockaddr*)&sa);
+	rc = machine_bind(server, (struct sockaddr *)&sa,
+			  MM_BINDWITH_SO_REUSEADDR);
 	test(rc == 0);
 
 	machine_io_t *client;
@@ -34,8 +34,6 @@ server(void *arg)
 	test(rc == 0);
 	rc = machine_tls_set_key_file(tls, "./machinarium/server.key");
 	test(rc == 0);
-	rc = machine_tls_create_context(tls,0);
-	test(rc == 0);
 	rc = machine_set_tls(client, tls, UINT32_MAX);
 	if (rc == -1) {
 		printf("%s\n", machine_error(client));
@@ -45,8 +43,7 @@ server(void *arg)
 	int chunk_size = 10 * 1024;
 	int total = 10 * 1024 * 1024;
 	int pos = 0;
-	while (pos < total)
-	{
+	while (pos < total) {
 		machine_msg_t *msg;
 		msg = machine_msg_create(0);
 		test(msg != NULL);
@@ -69,8 +66,7 @@ server(void *arg)
 	machine_tls_free(tls);
 }
 
-static void
-client(void *arg)
+static void client(void *arg)
 {
 	(void)arg;
 	machine_io_t *client = machine_io_create();
@@ -81,7 +77,7 @@ client(void *arg)
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = inet_addr("127.0.0.1");
 	sa.sin_port = htons(7778);
-	rc = machine_connect(client, (struct sockaddr*)&sa, UINT32_MAX);
+	rc = machine_connect(client, (struct sockaddr *)&sa, UINT32_MAX);
 	test(rc == 0);
 
 	machine_tls_t *tls;
@@ -93,8 +89,6 @@ client(void *arg)
 	rc = machine_tls_set_cert_file(tls, "./machinarium/client.crt");
 	test(rc == 0);
 	rc = machine_tls_set_key_file(tls, "./machinarium/client.key");
-	test(rc == 0);
-	rc = machine_tls_create_context(tls,1);
 	test(rc == 0);
 	rc = machine_set_tls(client, tls, UINT32_MAX);
 	if (rc == -1) {
@@ -109,7 +103,7 @@ client(void *arg)
 	char *buf_cmp = malloc(10 * 1024 * 1024);
 	test(buf_cmp != NULL);
 	memset(buf_cmp, 'x', 10 * 1024 * 1024);
-	test(memcmp(buf_cmp, machine_msg_data(msg), 10 * 1024 * 1024) == 0 );
+	test(memcmp(buf_cmp, machine_msg_data(msg), 10 * 1024 * 1024) == 0);
 	free(buf_cmp);
 
 	machine_msg_free(msg);
@@ -121,8 +115,7 @@ client(void *arg)
 	machine_tls_free(tls);
 }
 
-static void
-test_cs(void *arg)
+static void test_cs(void *arg)
 {
 	(void)arg;
 	int rc;
@@ -133,8 +126,7 @@ test_cs(void *arg)
 	test(rc != -1);
 }
 
-void
-machinarium_test_tls_read_10mb1(void)
+void machinarium_test_tls_read_10mb1(void)
 {
 	machinarium_init();
 

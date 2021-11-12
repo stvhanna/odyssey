@@ -5,9 +5,13 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #define _GNU_SOURCE 1
+
+#ifndef IOV_MAX
+#define IOV_MAX __IOV_MAX
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -56,6 +60,7 @@
 #include "loop.h"
 #include "epoll.h"
 #include "socket.h"
+#include "bind.h"
 
 #include "context_stack.h"
 #include "context.h"
@@ -74,6 +79,7 @@
 #include "msg.h"
 #include "msg_cache.h"
 #include "channel_type.h"
+#include "channel_limit.h"
 #include "channel.h"
 #include "channel_fast.h"
 
@@ -87,6 +93,8 @@
 #include "iov.h"
 #include "io.h"
 #include "tls.h"
+#include "compression.h"
+#include "zpq_stream.h"
 
 #include "lrand48.h"
 

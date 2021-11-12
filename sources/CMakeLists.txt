@@ -1,4 +1,6 @@
 
+configure_file("build.h.cmake" "build.h")
+
 set(od_binary ${CMAKE_PROJECT_NAME})
 set(od_src
     daemon.c
@@ -13,9 +15,9 @@ set(od_src
     cron.c
     worker.c
     tls.c
+    attribute.c
     auth_query.c
     auth.c
-    scram.c
     cancel.c
     console.c
     deploy.c
@@ -24,13 +26,37 @@ set(od_src
     backend.c
     instance.c
     main.c
-)
+    misc.c
+    tdigest.c
+    module.c
+    counter.c
+    err_logger.c
+    setproctitle.c
+    debugprintf.c
+    restart_sync.c
+    grac_shutdown_worker.c
+    sighandler.c
+    watchdog.c
+    ejection.c
+    thread_global.c
+    compression.c
+    option.c)
 
 if (PAM_FOUND)
-   list(APPEND od_src pam.c)
+        list(APPEND od_src pam.c)
 endif()
 
-configure_file("build.h.cmake" "build.h")
+if (USE_SCRAM)
+        list(APPEND od_src scram.c)
+endif()
+
+if (LDAP_FOUND)
+        list(APPEND od_src ldap.c)
+endif()
+
+if (PROM_FOUND)
+        list(APPEND od_src prom_metrics.c)
+endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/")
 include_directories("${PROJECT_SOURCE_DIR}/sources")
@@ -45,4 +71,8 @@ if(THREADS_HAVE_PTHREAD_ARG)
     set_property(TARGET ${od_binary} PROPERTY INTERFACE_COMPILE_OPTIONS "-pthread")
 endif()
 
-target_link_libraries(${od_binary} ${od_libraries} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${od_binary} ${od_libraries} ${CMAKE_THREAD_LIBS_INIT} m)
+
+if (BUILD_COMPRESSION)
+    target_link_libraries(${od_binary} ${compression_libraries})
+endif()

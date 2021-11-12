@@ -3,13 +3,12 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #include <machinarium.h>
 #include <machinarium_private.h>
 
-static void
-mm_eventmgr_on_read(mm_fd_t *handle)
+static void mm_eventmgr_on_read(mm_fd_t *handle)
 {
 	mm_eventmgr_t *mgr = handle->on_read_arg;
 
@@ -22,13 +21,14 @@ mm_eventmgr_on_read(mm_fd_t *handle)
 	/* wakeup event waiters */
 	mm_sleeplock_lock(&mgr->lock);
 
-	if (! mgr->count_ready) {
+	if (!mgr->count_ready) {
 		mm_sleeplock_unlock(&mgr->lock);
 		return;
 	}
 
 	mm_list_t *i;
-	mm_list_foreach(&mgr->list_ready, i) {
+	mm_list_foreach(&mgr->list_ready, i)
+	{
 		mm_event_t *event;
 		event = mm_container_of(i, mm_event_t, link);
 		assert(event->state == MM_EVENT_READY);
@@ -132,8 +132,7 @@ int mm_eventmgr_signal(mm_event_t *event)
 
 	mm_sleeplock_lock(&mgr->lock);
 
-	if (event->state == MM_EVENT_NONE ||
-	    event->state == MM_EVENT_ACTIVE) {
+	if (event->state == MM_EVENT_NONE || event->state == MM_EVENT_ACTIVE) {
 		mm_sleeplock_unlock(&mgr->lock);
 		return 0;
 	}

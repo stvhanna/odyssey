@@ -3,7 +3,7 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #include <machinarium.h>
 #include <machinarium_private.h>
@@ -41,7 +41,7 @@ int mm_loop_step(mm_loop_t *loop)
 	int rc;
 	if (loop->idle.callback) {
 		rc = loop->idle.callback(&loop->idle);
-		if (! rc)
+		if (!rc)
 			return 0;
 	}
 

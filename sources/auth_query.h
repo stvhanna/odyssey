@@ -5,8 +5,10 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
-int od_auth_query(od_global_t*, od_rule_t*, char*, kiwi_var_t*, kiwi_password_t*);
+#define ODYSSEY_AUTH_QUERY_MAX_PASSSWORD_LEN 4096
+
+int od_auth_query(od_client_t *, char *);
 
 #endif /* ODYSSEY_AUTH_QUERY_H */

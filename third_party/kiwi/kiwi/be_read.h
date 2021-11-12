@@ -5,37 +5,37 @@
  * kiwi.
  *
  * postgreSQL protocol interaction library.
-*/
+ */
+
+#include "parser_pgoptions.h"
 
 typedef struct kiwi_be_startup kiwi_be_startup_t;
 
-struct kiwi_be_startup
-{
-	int        is_ssl_request;
-	int        is_cancel;
+struct kiwi_be_startup {
+	int is_ssl_request;
+	int unsupported_request;
+	int is_cancel;
 	kiwi_key_t key;
 	kiwi_var_t user;
 	kiwi_var_t database;
 	kiwi_var_t replication;
 };
 
-static inline void
-kiwi_be_startup_init(kiwi_be_startup_t *su)
+static inline void kiwi_be_startup_init(kiwi_be_startup_t *su)
 {
-	su->is_cancel      = 0;
+	su->is_cancel = 0;
 	su->is_ssl_request = 0;
+	su->unsupported_request = 0;
 	kiwi_key_init(&su->key);
 	kiwi_var_init(&su->user, NULL, 0);
 	kiwi_var_init(&su->database, NULL, 0);
 	kiwi_var_init(&su->replication, NULL, 0);
 }
 
-static inline int
-kiwi_be_read_options(kiwi_be_startup_t *su, char *pos, uint32_t pos_size,
-                     kiwi_vars_t *vars)
+static inline int kiwi_be_read_options(kiwi_be_startup_t *su, char *pos,
+				       uint32_t pos_size, kiwi_vars_t *vars)
 {
-	for (;;)
-	{
+	for (;;) {
 		/* name */
 		uint32_t name_size;
 		char *name = pos;
@@ -56,15 +56,20 @@ kiwi_be_read_options(kiwi_be_startup_t *su, char *pos, uint32_t pos_size,
 
 		/* set common params */
 		if (name_size == 5 && !memcmp(name, "user", 5))
-			kiwi_var_set(&su->user, KIWI_VAR_UNDEF, value, value_size);
+			kiwi_var_set(&su->user, KIWI_VAR_UNDEF, value,
+				     value_size);
+		else if (name_size == 9 && !memcmp(name, "database", 9))
+			kiwi_var_set(&su->database, KIWI_VAR_UNDEF, value,
+				     value_size);
+		else if (name_size == 12 && !memcmp(name, "replication", 12))
+			kiwi_var_set(&su->replication, KIWI_VAR_UNDEF, value,
+				     value_size);
+		else if (name_size == 8 && !memcmp(name, "options", 8))
+			kiwi_parse_pgoptions_and_update_vars(vars, value,
+							     value_size);
 		else
-		if (name_size == 9 && !memcmp(name, "database", 9))
-			kiwi_var_set(&su->database, KIWI_VAR_UNDEF, value, value_size);
-		else
-		if (name_size == 12 && !memcmp(name, "replication", 12))
-			kiwi_var_set(&su->replication, KIWI_VAR_UNDEF, value, value_size);
-		else
-			kiwi_vars_update(vars, name, name_size, value, value_size);
+			kiwi_vars_update(vars, name, name_size, value,
+					 value_size);
 	}
 
 	/* user is mandatory */
@@ -73,14 +78,21 @@ kiwi_be_read_options(kiwi_be_startup_t *su, char *pos, uint32_t pos_size,
 
 	/* database = user, if not specified */
 	if (su->database.value_len == 0)
-		kiwi_var_set(&su->database, KIWI_VAR_UNDEF,
-		             su->user.value,
-		             su->user.value_len);
+		kiwi_var_set(&su->database, KIWI_VAR_UNDEF, su->user.value,
+			     su->user.value_len);
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_be_read_startup(char *data, uint32_t size, kiwi_be_startup_t *su, kiwi_vars_t *vars)
+#define PG_PROTOCOL(m, n) (((m) << 16) | (n))
+#define NEGOTIATE_SSL_CODE PG_PROTOCOL(1234, 5679)
+#define NEGOTIATE_GSS_CODE PG_PROTOCOL(1234, 5680)
+#define CANCEL_REQUEST_CODE PG_PROTOCOL(1234, 5678)
+#define PG_PROTOCOL_LATEST PG_PROTOCOL(3, 0)
+#define PG_PROTOCOL_EARLIEST PG_PROTOCOL(2, 0)
+
+KIWI_API static inline int kiwi_be_read_startup(char *data, uint32_t size,
+						kiwi_be_startup_t *su,
+						kiwi_vars_t *vars)
 {
 	uint32_t pos_size = size;
 	char *pos = data;
@@ -93,16 +105,17 @@ kiwi_be_read_startup(char *data, uint32_t size, kiwi_be_startup_t *su, kiwi_vars
 	rc = kiwi_read32(&version, &pos, &pos_size);
 	if (kiwi_unlikely(rc == -1))
 		return -1;
+	su->unsupported_request = 0;
 	switch (version) {
 	/* StartupMessage */
-	case 196608:
+	case PG_PROTOCOL_LATEST:
 		su->is_cancel = 0;
 		rc = kiwi_be_read_options(su, pos, pos_size, vars);
 		if (kiwi_unlikely(rc == -1))
 			return -1;
 		break;
 	/* CancelRequest */
-	case 80877102:
+	case CANCEL_REQUEST_CODE:
 		su->is_cancel = 1;
 		rc = kiwi_read32(&su->key.key_pid, &pos, &pos_size);
 		if (kiwi_unlikely(rc == -1))
@@ -112,8 +125,14 @@ kiwi_be_read_startup(char *data, uint32_t size, kiwi_be_startup_t *su, kiwi_vars
 			return -1;
 		break;
 	/* SSLRequest */
-	case  80877103:
+	case NEGOTIATE_SSL_CODE:
 		su->is_ssl_request = 1;
+		break;
+	/* GSSRequest */
+	case NEGOTIATE_GSS_CODE:
+	/* V2 protocol startup */
+	case PG_PROTOCOL_EARLIEST:
+		su->unsupported_request = 1;
 		break;
 	default:
 		return -1;
@@ -121,15 +140,17 @@ kiwi_be_read_startup(char *data, uint32_t size, kiwi_be_startup_t *su, kiwi_vars
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_be_read_password(char *data, uint32_t size, kiwi_password_t *pw)
+KIWI_API static inline int kiwi_be_read_password(char *data, uint32_t size,
+						 kiwi_password_t *pw)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
 		return -1;
 	if (kiwi_unlikely(header->type != KIWI_FE_PASSWORD_MESSAGE))
+		return -1;
+	if (len > KIWI_LONG_MESSAGE_SIZE)
 		return -1;
 	pw->password_len = len;
 	pw->password = malloc(len);
@@ -139,10 +160,10 @@ kiwi_be_read_password(char *data, uint32_t size, kiwi_password_t *pw)
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_be_read_query(char *data, uint32_t size, char **query, uint32_t *query_len)
+KIWI_API static inline int kiwi_be_read_query(char *data, uint32_t size,
+					      char **query, uint32_t *query_len)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -154,11 +175,11 @@ kiwi_be_read_query(char *data, uint32_t size, char **query, uint32_t *query_len)
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_be_read_parse(char *data, uint32_t size, char **name, uint32_t *name_len,
-                   char **query, uint32_t *query_len)
+KIWI_API static inline int kiwi_be_read_parse(char *data, uint32_t size,
+					      char **name, uint32_t *name_len,
+					      char **query, uint32_t *query_len)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -187,10 +208,11 @@ kiwi_be_read_parse(char *data, uint32_t size, char **name, uint32_t *name_len,
 }
 
 KIWI_API static inline int
-kiwi_be_read_authentication_sasl_initial(char *data, uint32_t size, 
-					      		   		 char **mechanism, char **auth_data)
+kiwi_be_read_authentication_sasl_initial(char *data, uint32_t size,
+					 char **mechanism, char **auth_data,
+					 size_t *auth_data_size)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -210,17 +232,20 @@ kiwi_be_read_authentication_sasl_initial(char *data, uint32_t size,
 	rc = kiwi_read32(&auth_data_len, &pos, &pos_size);
 	if (kiwi_unlikely(rc == -1))
 		return -1;
+	if (kiwi_unlikely(auth_data_len != pos_size))
+		return -1;
 
 	*auth_data = pos;
+	*auth_data_size = pos_size;
 
 	return 0;
 }
 
 KIWI_API static inline int
-kiwi_be_read_authentication_sasl(char *data, uint32_t size, 
-						         char **auth_data)
+kiwi_be_read_authentication_sasl(char *data, uint32_t size, char **auth_data,
+				 size_t *auth_data_size)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -229,6 +254,7 @@ kiwi_be_read_authentication_sasl(char *data, uint32_t size,
 		return -1;
 
 	*auth_data = kiwi_header_data(header);
+	*auth_data_size = len;
 
 	return 0;
 }

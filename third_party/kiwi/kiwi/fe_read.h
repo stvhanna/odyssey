@@ -5,12 +5,11 @@
  * kiwi.
  *
  * postgreSQL protocol interaction library.
-*/
+ */
 
 typedef struct kiwi_fe_error kiwi_fe_error_t;
 
-struct kiwi_fe_error
-{
+struct kiwi_fe_error {
 	char *severity;
 	char *code;
 	char *message;
@@ -18,10 +17,10 @@ struct kiwi_fe_error
 	char *hint;
 };
 
-KIWI_API static inline int
-kiwi_fe_read_ready(char *data, uint32_t size, int *status)
+KIWI_API static inline int kiwi_fe_read_ready(char *data, uint32_t size,
+					      int *status)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -32,10 +31,10 @@ kiwi_fe_read_ready(char *data, uint32_t size, int *status)
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_fe_read_key(char *data, uint32_t size, kiwi_key_t *key)
+KIWI_API static inline int kiwi_fe_read_key(char *data, uint32_t size,
+					    kiwi_key_t *key)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -53,11 +52,12 @@ kiwi_fe_read_key(char *data, uint32_t size, kiwi_key_t *key)
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_fe_read_auth(char *data, uint32_t size, uint32_t *type, char salt[4], 
-				  char **auth_data)
+KIWI_API static inline int kiwi_fe_read_auth(char *data, uint32_t size,
+					     uint32_t *type, char salt[4],
+					     char **auth_data,
+					     size_t *auth_data_size)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -84,19 +84,19 @@ kiwi_fe_read_auth(char *data, uint32_t size, uint32_t *type, char salt[4],
 		return 0;
 	/* AuthenticationSASL */
 	case 10:
-		/* SCRAM-SHA-256 is the only implemented SASL mechanism in PostgreSQL, at the moment */
+		/* SCRAM-SHA-256 is the only implemented SASL mechanism in
+			 * PostgreSQL, at the moment */
 		if (strcmp(pos, "SCRAM-SHA-256") != 0)
 			return -1;
 		return 0;
 	/* AuthenticationSASLContinue */
 	case 11:
-		if (auth_data != NULL)
-			*auth_data = pos;
-		return 0;
 	/* AuthenticationSASLFinal */
 	case 12:
 		if (auth_data != NULL)
 			*auth_data = pos;
+		if (auth_data_size != NULL)
+			*auth_data_size = pos_size;
 		return 0;
 	}
 	/* unsupported */
@@ -104,12 +104,10 @@ kiwi_fe_read_auth(char *data, uint32_t size, uint32_t *type, char salt[4],
 }
 
 KIWI_API static inline int
-kiwi_fe_read_parameter(char *data,
-                       uint32_t size,
-                       char **name, uint32_t *name_len,
-                       char **value, uint32_t *value_len)
+kiwi_fe_read_parameter(char *data, uint32_t size, char **name,
+		       uint32_t *name_len, char **value, uint32_t *value_len)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -133,10 +131,10 @@ kiwi_fe_read_parameter(char *data,
 	return 0;
 }
 
-KIWI_API static inline int
-kiwi_fe_read_error(char *data, uint32_t size, kiwi_fe_error_t *error)
+KIWI_API static inline int kiwi_fe_read_error(char *data, uint32_t size,
+					      kiwi_fe_error_t *error)
 {
-	kiwi_header_t *header = (kiwi_header_t*)data;
+	kiwi_header_t *header = (kiwi_header_t *)data;
 	uint32_t len;
 	int rc = kiwi_read(&len, &data, &size);
 	if (kiwi_unlikely(rc != 0))
@@ -146,8 +144,7 @@ kiwi_fe_read_error(char *data, uint32_t size, kiwi_fe_error_t *error)
 	memset(error, 0, sizeof(*error));
 	uint32_t pos_size = len;
 	char *pos = kiwi_header_data(header);
-	for (;;)
-	{
+	for (;;) {
 		char type;
 		int rc;
 		rc = kiwi_read8(&type, &pos, &pos_size);

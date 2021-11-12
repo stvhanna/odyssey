@@ -5,36 +5,34 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
 typedef struct od_client_pool od_client_pool_t;
 
-typedef int (*od_client_pool_cb_t)(od_client_t*, void**);
+typedef int (*od_client_pool_cb_t)(od_client_t *, void **);
 
-struct od_client_pool
-{
+struct od_client_pool {
 	od_list_t active;
 	od_list_t queue;
 	od_list_t pending;
-	int       count_active;
-	int       count_queue;
-	int       count_pending;
+	int count_active;
+	int count_queue;
+	int count_pending;
 };
 
-static inline void
-od_client_pool_init(od_client_pool_t *pool)
+static inline void od_client_pool_init(od_client_pool_t *pool)
 {
-	pool->count_active  = 0;
-	pool->count_queue   = 0;
+	pool->count_active = 0;
+	pool->count_queue = 0;
 	pool->count_pending = 0;
 	od_list_init(&pool->active);
 	od_list_init(&pool->queue);
 	od_list_init(&pool->pending);
 }
 
-static inline void
-od_client_pool_set(od_client_pool_t *pool, od_client_t *client,
-                   od_client_state_t state)
+static inline void od_client_pool_set(od_client_pool_t *pool,
+				      od_client_t *client,
+				      od_client_state_t state)
 {
 	if (client->state == state)
 		return;
@@ -75,8 +73,8 @@ od_client_pool_set(od_client_pool_t *pool, od_client_t *client,
 	client->state = state;
 }
 
-static inline od_client_t*
-od_client_pool_next(od_client_pool_t *pool, od_client_state_t state)
+static inline od_client_t *od_client_pool_next(od_client_pool_t *pool,
+					       od_client_state_t state)
 {
 	int target_count = 0;
 	od_list_t *target = NULL;
@@ -104,11 +102,10 @@ od_client_pool_next(od_client_pool_t *pool, od_client_state_t state)
 	return client;
 }
 
-static inline od_client_t*
-od_client_pool_foreach(od_client_pool_t *pool,
-                       od_client_state_t state,
-                       od_client_pool_cb_t callback,
-                       void **argv)
+static inline od_client_t *od_client_pool_foreach(od_client_pool_t *pool,
+						  od_client_state_t state,
+						  od_client_pool_cb_t callback,
+						  void **argv)
 {
 	od_list_t *target = NULL;
 	switch (state) {
@@ -127,7 +124,8 @@ od_client_pool_foreach(od_client_pool_t *pool,
 	}
 	od_client_t *client;
 	od_list_t *i, *n;
-	od_list_foreach_safe(target, i, n) {
+	od_list_foreach_safe(target, i, n)
+	{
 		client = od_container_of(i, od_client_t, link_pool);
 		int rc;
 		rc = callback(client, argv);
@@ -138,11 +136,9 @@ od_client_pool_foreach(od_client_pool_t *pool,
 	return NULL;
 }
 
-static inline int
-od_client_pool_total(od_client_pool_t *pool)
+static inline int od_client_pool_total(od_client_pool_t *pool)
 {
-	return pool->count_active + pool->count_queue +
-	       pool->count_pending;
+	return pool->count_active + pool->count_queue + pool->count_pending;
 }
 
 #endif /* ODYSSEY_CLIENT_POOL_H */

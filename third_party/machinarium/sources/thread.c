@@ -3,13 +3,13 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #include <machinarium.h>
 #include <machinarium_private.h>
 
 int mm_thread_create(mm_thread_t *thread, int stack_size,
-                     mm_thread_function_t function, void *arg)
+		     mm_thread_function_t function, void *arg)
 {
 	pthread_attr_t attr;
 	int rc;

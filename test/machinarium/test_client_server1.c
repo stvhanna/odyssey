@@ -5,8 +5,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-static void
-server(void *arg)
+static void server(void *arg)
 {
 	(void)arg;
 	machine_io_t *server = machine_io_create();
@@ -17,7 +16,8 @@ server(void *arg)
 	sa.sin_addr.s_addr = inet_addr("127.0.0.1");
 	sa.sin_port = htons(7778);
 	int rc;
-	rc = machine_bind(server, (struct sockaddr*)&sa);
+	rc = machine_bind(server, (struct sockaddr *)&sa,
+			  MM_BINDWITH_SO_REUSEADDR);
 	test(rc == 0);
 
 	machine_io_t *client;
@@ -30,7 +30,12 @@ server(void *arg)
 	machine_msg_t *msg;
 	msg = machine_msg_create(0);
 	test(msg != NULL);
-	char text[] = "hello world" "HELLO WORLD" "a" "b" "c" "333";
+	char text[] = "hello world"
+		      "HELLO WORLD"
+		      "a"
+		      "b"
+		      "c"
+		      "333";
 	rc = machine_msg_write(msg, text, sizeof(text));
 	test(rc == 0);
 
@@ -46,8 +51,7 @@ server(void *arg)
 	machine_io_free(server);
 }
 
-static void
-client(void *arg)
+static void client(void *arg)
 {
 	(void)arg;
 	machine_io_t *client = machine_io_create();
@@ -58,7 +62,7 @@ client(void *arg)
 	sa.sin_addr.s_addr = inet_addr("127.0.0.1");
 	sa.sin_port = htons(7778);
 	int rc;
-	rc = machine_connect(client, (struct sockaddr*)&sa, UINT32_MAX);
+	rc = machine_connect(client, (struct sockaddr *)&sa, UINT32_MAX);
 	test(rc == 0);
 
 	machine_msg_t *msg;
@@ -101,8 +105,7 @@ client(void *arg)
 	machine_io_free(client);
 }
 
-static void
-test_cs(void *arg)
+static void test_cs(void *arg)
 {
 	(void)arg;
 	int rc;
@@ -113,8 +116,7 @@ test_cs(void *arg)
 	test(rc != -1);
 }
 
-void
-machinarium_test_client_server1(void)
+void machinarium_test_client_server1(void)
 {
 	machinarium_init();
 

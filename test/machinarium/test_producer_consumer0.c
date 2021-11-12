@@ -7,20 +7,19 @@ static machine_channel_t *channel;
 static int producer;
 static int consumer;
 
-static void
-test_consumer(void *arg)
+static void test_consumer(void *arg)
 {
 	(void)arg;
 	int i = 0;
 	for (; i < 100; i++) {
 		machine_msg_t *msg;
 		msg = machine_channel_read(channel, UINT32_MAX);
+		test(msg != NULL);
 		machine_msg_free(msg);
 	}
 }
 
-static void
-test_producer(void *arg)
+static void test_producer(void *arg)
 {
 	(void)arg;
 	int i = 0;
@@ -33,8 +32,7 @@ test_producer(void *arg)
 	}
 }
 
-void
-machinarium_test_producer_consumer0(void)
+void machinarium_test_producer_consumer0(void)
 {
 	machinarium_init();
 

@@ -4,8 +4,7 @@
 
 #include <arpa/inet.h>
 
-static void
-test_connect_coroutine(void *arg)
+static void test_connect_coroutine(void *arg)
 {
 	(void)arg;
 	machine_io_t *client = machine_io_create();
@@ -22,8 +21,7 @@ test_connect_coroutine(void *arg)
 	machine_io_free(client);
 }
 
-static void
-test_waiter(void *arg)
+static void test_waiter(void *arg)
 {
 	(void)arg;
 	int id = machine_coroutine_create(test_connect_coroutine, NULL);
@@ -36,8 +34,7 @@ test_waiter(void *arg)
 	test(rc == 0);
 }
 
-void
-machinarium_test_connect_timeout(void)
+void machinarium_test_connect_timeout(void)
 {
 	machinarium_init();
 

@@ -3,23 +3,13 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <inttypes.h>
-#include <assert.h>
-
-#include <machinarium.h>
 #include <kiwi.h>
+#include <machinarium.h>
 #include <odyssey.h>
 
-int
-od_reset(od_server_t *server)
+int od_reset(od_server_t *server)
 {
 	od_instance_t *instance = server->global->instance;
 	od_route_t *route = server->route;
@@ -32,10 +22,10 @@ od_reset(od_server_t *server)
 	}
 
 	/* support route rollback off */
-	if (! route->rule->pool_rollback) {
+	if (!route->rule->pool_rollback) {
 		if (server->is_transaction) {
-			od_log(&instance->logger, "reset", server->client, server,
-			       "in active transaction, closing");
+			od_log(&instance->logger, "reset", server->client,
+			       server, "in active transaction, closing");
 			goto drop;
 		}
 	}
@@ -63,45 +53,47 @@ od_reset(od_server_t *server)
 	int wait_try_cancel = 0;
 	int wait_cancel_limit = 1;
 	int rc = 0;
-	for (;;)
-	{
+	for (;;) {
 		/* check that msg syncronization is not broken*/
 		if (server->relay.packet > 0)
 			goto error;
 
-		while (! od_server_synchronized(server)) {
-			od_debug(&instance->logger, "reset", server->client, server,
-			         "not synchronized, wait for %d msec (#%d)",
-			         wait_timeout,
-			         wait_try);
+		while (!od_server_synchronized(server)) {
+			od_debug(&instance->logger, "reset", server->client,
+				 server,
+				 "not synchronized, wait for %d msec (#%d)",
+				 wait_timeout, wait_try);
 			wait_try++;
-			rc = od_backend_ready_wait(server, "reset", 1, wait_timeout);
+			rc = od_backend_ready_wait(server, "reset", 1,
+						   wait_timeout);
 			if (rc == -1)
 				break;
 		}
 		if (rc == -1) {
-			if (! machine_timedout())
+			if (!machine_timedout())
 				goto error;
 
 			/* support route cancel off */
-			if (! route->rule->pool_cancel) {
-				od_log(&instance->logger, "reset", server->client, server,
+			if (!route->rule->pool_cancel) {
+				od_log(&instance->logger, "reset",
+				       server->client, server,
 				       "not synchronized, closing");
 				goto drop;
 			}
 
 			if (wait_try_cancel == wait_cancel_limit) {
-				od_error(&instance->logger, "reset", server->client, server,
-				         "server cancel limit reached, closing");
+				od_error(
+					&instance->logger, "reset",
+					server->client, server,
+					"server cancel limit reached, closing");
 				goto error;
 			}
-			od_log(&instance->logger, "reset", server->client, server,
-			       "not responded, cancel (#%d)",
+			od_log(&instance->logger, "reset", server->client,
+			       server, "not responded, cancel (#%d)",
 			       wait_try_cancel);
 			wait_try_cancel++;
-			rc = od_cancel(server->global,
-			               route->rule->storage, &server->key,
-			               &server->id);
+			rc = od_cancel(server->global, route->rule->storage,
+				       &server->key, &server->id);
 			if (rc == -1)
 				goto error;
 			continue;
@@ -110,18 +102,19 @@ od_reset(od_server_t *server)
 		break;
 	}
 	od_debug(&instance->logger, "reset", server->client, server,
-	         "synchronized");
+		 "synchronized");
 
 	/* send rollback in case server has an active
 	 * transaction running */
 	if (route->rule->pool_rollback) {
 		if (server->is_transaction) {
 			char query_rlb[] = "ROLLBACK";
-			rc = od_backend_query(server, "reset-rollback", query_rlb,
-			                      sizeof(query_rlb));
+			rc = od_backend_query(server, "reset-rollback",
+					      query_rlb, sizeof(query_rlb),
+					      wait_timeout);
 			if (rc == -1)
 				goto error;
-			assert(! server->is_transaction);
+			assert(!server->is_transaction);
 		}
 	}
 
@@ -129,15 +122,15 @@ od_reset(od_server_t *server)
 	if (route->rule->pool_discard) {
 		char query_discard[] = "DISCARD ALL";
 		rc = od_backend_query(server, "reset-discard", query_discard,
-		                      sizeof(query_discard));
+				      sizeof(query_discard), wait_timeout);
 		if (rc == -1)
 			goto error;
 	}
 
 	/* ready */
-	return  1;
+	return 1;
 drop:
-	return  0;
+	return 0;
 error:
 	return -1;
 }

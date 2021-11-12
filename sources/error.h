@@ -5,54 +5,49 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
 typedef struct od_error od_error_t;
 
-struct od_error
-{
-	char file[256];
-	int  file_len;
+#define OD_ERROR_MAX_LEN 256
+
+struct od_error {
+	char file[OD_ERROR_MAX_LEN];
+	int file_len;
 	char function[128];
-	int  function_len;
-	char error[256];
-	int  error_len;
-	int  line;
+	int function_len;
+	char error[OD_ERROR_MAX_LEN];
+	int error_len;
+	int line;
 };
 
-static inline void
-od_error_init(od_error_t *error)
+static inline void od_error_init(od_error_t *error)
 {
-	error->file[0]      = 0;
-	error->file_len     = 0;
-	error->function[0]  = 0;
+	error->file[0] = 0;
+	error->file_len = 0;
+	error->function[0] = 0;
 	error->function_len = 0;
-	error->error[0]     = 0;
-	error->error_len    = 0;
-	error->line         = 0;
+	error->error[0] = 0;
+	error->error_len = 0;
+	error->line = 0;
 }
 
-static inline void
-od_error_setv(od_error_t *error,
-              const char *file,
-              const char *function, int line,
-              char *fmt, va_list args)
+static inline void od_error_setv(od_error_t *error, const char *file,
+				 const char *function, int line, char *fmt,
+				 va_list args)
 {
 	error->file_len =
 		od_snprintf(error->file, sizeof(error->file), "%s", file);
-	error->function_len =
-		od_snprintf(error->function, sizeof(error->function), "%s", function);
+	error->function_len = od_snprintf(
+		error->function, sizeof(error->function), "%s", function);
 	error->line = line;
 	int len;
 	len = od_vsnprintf(error->error, sizeof(error->error), fmt, args);
 	error->error_len = len;
 }
 
-static inline int
-od_error_set(od_error_t *error,
-             const char *file,
-             const char *function, int line,
-             char *fmt, ...)
+static inline int od_error_set(od_error_t *error, const char *file,
+			       const char *function, int line, char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

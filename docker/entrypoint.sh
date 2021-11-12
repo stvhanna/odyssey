@@ -1,11 +1,20 @@
 #!/bin/bash
-
-mkdir -p /odyssey/build
-cd /odyssey/build
-
 set -ex
 
-cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE ..
-make
+setup
 
-./sources/odyssey /etc/odyssey.conf
+#ldap
+/ldap/test_ldap.sh
+
+# scram
+#/scram/test_scram.sh
+
+ody-start
+/ody-intergration-test
+ody-stop
+
+/usr/bin/odyssey-asan /etc/odyssey/odyssey.conf
+
+## /shell-test/test.sh
+
+teardown

@@ -13,6 +13,11 @@ Odyssey is production-ready, it is being used in large production setups. We app
 
 <a href="https://travis-ci.org/yandex/odyssey"><img src="https://travis-ci.org/yandex/odyssey.svg?branch=master" /></a>
 
+<a href="https://scan.coverity.com/projects/yandex-odyssey">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/20374/badge.svg"/>
+</a>
+
 ### Design goals and main features
 
 #### Multi-threaded processing
@@ -40,7 +45,9 @@ Each defined pool can have separate authentication, pooling mode and limits sett
 #### Authentication
 
 Odyssey has full-featured `SSL/TLS` support and common authentication methods
-like: `md5` and `clear text` both for client and server authentication.
+like: `md5` and `clear text` both for client and server authentication. 
+Odyssey supports PAM & LDAP authentication, this methods operates similarly to `clear text` auth except that it uses 
+PAM/LDAP to validate user name/password pairs. PAM optionally checks the connected remote host name or IP address.
 Additionally it allows to block each pool user separately.
 
 #### Logging
@@ -49,6 +56,10 @@ Odyssey generates universally unique identifiers `uuid` for client and server co
 Any log events and client error responses include the id, which then can be used to
 uniquely identify client and track actions. Odyssey can save log events into log file and
 using system logger.
+
+### CLI
+
+Odyssey supports multiple command line options. Use `/path/to/odyssey` --help to see more
 
 #### Architecture and internals
 
@@ -69,19 +80,32 @@ Currently Odyssey runs only on Linux. Supported platforms are x86/x86_64.
 
 To build you will need:
 
-* cmake >= 2.8
+* cmake >= 3.12.4
 * gcc >= 4.6
 * openssl
-* postgresql-server-dev-10
+* postgresql-server-dev-13
+* pg_config utility is in the PATH
 
 ```sh
 git clone git://github.com/yandex/odyssey.git
 cd odyssey
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
+make local_build
 ```
+Adapt odyssey-dev.conf then:
+```sh
+make local_run
+```
+
+Alternatively:
+```sh
+build/sources/odyssey odyssey-dev.conf
+```
+
+#### Use docker environment for development (helpful for Mac users)
+```sh
+make start-dev-env
+```
+Set up your CLion to build project in container, [manual](https://github.com/shuhaoliu/docker-clion-dev/blob/master/README.md).
 
 ### Configuration reference
 
@@ -170,6 +194,7 @@ make
 * [storage\_db](documentation/configuration.md#storage-string)
 * [storage\_user](documentation/configuration.md#storage-string)
 * [storage\_password](documentation/configuration.md#storage-string)
+* [password\_passthrough](documentation/configuration.md#storage-string)
 * [pool](documentation/configuration.md#pool-string)
 * [pool\_size](documentation/configuration.md#pool_size-integer)
 * [pool\_timeout](documentation/configuration.md#pool_timeout-integer)

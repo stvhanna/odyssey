@@ -5,8 +5,8 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
-void mm_lrand48_seed();
+void mm_lrand48_seed(void);
 
 #endif /* MM_LRAND48_H */

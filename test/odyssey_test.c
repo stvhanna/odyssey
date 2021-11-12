@@ -3,7 +3,7 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -75,6 +75,11 @@ extern void machinarium_test_tls_read_10mb2(void);
 extern void machinarium_test_tls_read_multithread(void);
 extern void machinarium_test_tls_read_var(void);
 
+extern void odyssey_test_tdigest(void);
+extern void odyssey_test_attribute(void);
+extern void odyssey_test_util(void);
+extern void odyssey_test_lock(void);
+
 int main(int argc, char *argv[])
 {
 	(void)argc;
@@ -138,11 +143,10 @@ int main(int argc, char *argv[])
 	odyssey_test(machinarium_test_tls_read_10mb2);
 	odyssey_test(machinarium_test_tls_read_multithread);
 	odyssey_test(machinarium_test_tls_read_var);
-
-	odyssey_shell_test("odyssey/setup");
-	odyssey_shell_test("odyssey/test_scram_backend");
-	odyssey_shell_test("odyssey/test_scram_frontend");
-	odyssey_shell_test("odyssey/teardown");
+	odyssey_test(odyssey_test_tdigest);
+	odyssey_test(odyssey_test_attribute);
+	odyssey_test(odyssey_test_util);
+	odyssey_test(odyssey_test_lock);
 
 	return 0;
 }

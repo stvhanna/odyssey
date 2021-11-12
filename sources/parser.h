@@ -5,72 +5,68 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
-typedef struct od_token   od_token_t;
+#include "ctype.h"
+
+typedef struct od_token od_token_t;
 typedef struct od_keyword od_keyword_t;
-typedef struct od_parser  od_parser_t;
+typedef struct od_parser od_parser_t;
 
-enum {
-	OD_PARSER_EOF,
-	OD_PARSER_ERROR,
-	OD_PARSER_NUM,
-	OD_PARSER_KEYWORD,
-	OD_PARSER_SYMBOL,
-	OD_PARSER_STRING
-};
+enum { OD_PARSER_EOF,
+       OD_PARSER_ERROR,
+       OD_PARSER_NUM,
+       OD_PARSER_KEYWORD,
+       OD_PARSER_SYMBOL,
+       OD_PARSER_STRING };
 
-struct od_token
-{
+struct od_token {
 	int type;
 	int line;
 	union {
 		int64_t num;
 		struct {
 			char *pointer;
-			int   size;
+			int size;
 		} string;
 	} value;
 };
 
-struct od_keyword
-{
-	int   id;
+struct od_keyword {
+	int id;
 	char *name;
-	int   name_len;
+	int name_len;
 };
 
-#define od_keyword(name, token) \
-	{ token, name, sizeof(name) - 1 }
+#define od_keyword(name, token)               \
+	{                                     \
+		token, name, sizeof(name) - 1 \
+	}
 
-struct od_parser
-{
-	char       *pos;
-	char       *end;
-	od_token_t  backlog[4];
-	int         backlog_count;
-	int         line;
+struct od_parser {
+	char *pos;
+	char *end;
+	od_token_t backlog[4];
+	int backlog_count;
+	int line;
 };
 
-static inline void
-od_parser_init(od_parser_t *parser, char *string, int size)
+static inline void od_parser_init(od_parser_t *parser, char *string, int size)
 {
-	parser->pos  = string;
-	parser->end  = string + size;
+	parser->pos = string;
+	parser->end = string + size;
 	parser->line = 0;
 	parser->backlog_count = 0;
 }
 
-static inline void
-od_parser_push(od_parser_t *parser, od_token_t *token)
+static inline void od_parser_push(od_parser_t *parser, od_token_t *token)
 {
 	assert(parser->backlog_count < 4);
 	parser->backlog[parser->backlog_count] = *token;
 	parser->backlog_count++;
 }
 
-static inline int
-od_parser_next(od_parser_t *parser, od_token_t *token)
+static inline int od_parser_next(od_parser_t *parser, od_token_t *token)
 {
 	/* try to use backlog */
 	if (parser->backlog_count > 0) {
@@ -102,7 +98,7 @@ od_parser_next(od_parser_t *parser, od_token_t *token)
 	/* number */
 	int is_negative;
 	is_negative = *parser->pos == '-' && (parser->pos + 1 < parser->end) &&
-	              isdigit(parser->pos[1]);
+		      isdigit(parser->pos[1]);
 	if (is_negative || isdigit(*parser->pos)) {
 		token->type = OD_PARSER_NUM;
 		token->line = parser->line;
@@ -110,7 +106,8 @@ od_parser_next(od_parser_t *parser, od_token_t *token)
 		if (is_negative)
 			parser->pos++;
 		while (parser->pos < parser->end && isdigit(*parser->pos)) {
-			token->value.num = (token->value.num * 10) + *parser->pos - '0';
+			token->value.num =
+				(token->value.num * 10) + *parser->pos - '0';
 			parser->pos++;
 		}
 		if (is_negative)
@@ -132,7 +129,7 @@ od_parser_next(od_parser_t *parser, od_token_t *token)
 		token->value.string.pointer = parser->pos;
 		while (parser->pos < parser->end &&
 		       (*parser->pos == '_' || isalpha(*parser->pos) ||
-		         isdigit(*parser->pos)))
+			isdigit(*parser->pos)))
 			parser->pos++;
 		token->value.string.size =
 			parser->pos - token->value.string.pointer;
@@ -149,7 +146,11 @@ od_parser_next(od_parser_t *parser, od_token_t *token)
 				token->type = OD_PARSER_ERROR;
 				return token->type;
 			}
-			parser->pos++;
+			if ((*parser->pos == '\\') &&
+			    (parser->pos + 1 != parser->end))
+				parser->pos += 2;
+			else
+				parser->pos++;
 		}
 		if (od_unlikely(parser->pos == parser->end)) {
 			token->type = OD_PARSER_ERROR;
@@ -166,18 +167,25 @@ od_parser_next(od_parser_t *parser, od_token_t *token)
 	return token->type;
 }
 
-static inline od_keyword_t*
-od_keyword_match(od_keyword_t *list, od_token_t *token)
+static inline od_keyword_t *od_keyword_match(od_keyword_t *list,
+					     od_token_t *token)
 {
 	od_keyword_t *current = &list[0];
 	for (; current->name; current++) {
 		if (current->name_len != token->value.string.size)
 			continue;
 		if (strncasecmp(current->name, token->value.string.pointer,
-		                token->value.string.size) == 0)
+				token->value.string.size) == 0)
 			return current;
 	}
 	return NULL;
+}
+
+static inline void od_token_to_string_dest(od_token_t *token, char *dest)
+{
+	*dest = '\0';
+	strncat(dest, token->value.string.pointer, token->value.string.size);
+	return;
 }
 
 #endif /* ODYSSEY_PARSER_H */

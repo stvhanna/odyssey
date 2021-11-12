@@ -45,7 +45,7 @@ Repository: [third\_party/kiwi](https://github.com/yandex/odyssey/tree/master/th
 
 Application entry point.
 
-Handle initialization. Read configuration file, prepare loggers.
+Handle initialization. Read configuration file, prepare loggers, parse cli options.
 Run system and worker\_pool threads.
 
 [sources/instance.h](/sources/instance.h), [sources/instance.c](/sources/instance.c)
@@ -61,7 +61,8 @@ On incoming connection, new client context is created and notification message i
 worker using `workerpool_feed()`. Client IO context is not attached to any `epoll(7)` context yet.
 
 Handle signals using `machine_signal_wait()`. On `SIGHUP`: do versional config reload, add new databases
-and obsolete old ones. On `SIGINT`, `SIGTERM`: call `exit(3)`. Other threads are blocked from receiving signals.
+and obsolete old ones. On `SIGUSR1`: reopen log file. On `SIGUSR2`: graceful shutdown.
+On `SIGINT`, `SIGTERM`: call `exit(3)`. Other threads are blocked from receiving signals.
 
 [sources/system.h](/sources/system.h), [sources/system.c](/sources/system.c)
 

@@ -5,13 +5,15 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
 /* AUTO-GENERATED (see version.h.cmake) */
 
-#cmakedefine OD_VERSION_GIT   "@OD_VERSION_GIT@"
-#cmakedefine OD_VERSION_BUILD "@OD_VERSION_BUILD@"
+#cmakedefine OD_DEVEL_LVL @OD_DEVEL_LVL@
 
-#cmakedefine PAM_FOUND 1
+#cmakedefine PAM_FOUND @PAM_FOUND@
+#cmakedefine LDAP_FOUND @LDAP_FOUND@
+#cmakedefine PROM_FOUND @PROM_FOUND@
+#cmakedefine PG_VERSION_NUM @PG_VERSION_NUM@
 
 #endif /* ODYSSEY_BUILD_H */

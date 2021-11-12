@@ -3,13 +3,12 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #include <machinarium.h>
 #include <machinarium_private.h>
 
-static void
-mm_signalmgr_on_read(mm_fd_t *handle)
+static void mm_signalmgr_on_read(mm_fd_t *handle)
 {
 	mm_signalmgr_t *mgr = handle->on_read_arg;
 
@@ -24,11 +23,13 @@ mm_signalmgr_on_read(mm_fd_t *handle)
 
 	/* do one-time wakeup and detach all readers */
 	mm_list_t *i, *n;
-	mm_list_foreach_safe(&mgr->readers, i, n) {
+	mm_list_foreach_safe(&mgr->readers, i, n)
+	{
 		mm_signalrd_t *reader;
 		reader = mm_container_of(i, mm_signalrd_t, link);
 		reader->signal = fdsi.ssi_signo;
-		mm_scheduler_wakeup(&mm_self->scheduler, reader->call.coroutine);
+		mm_scheduler_wakeup(&mm_self->scheduler,
+				    reader->call.coroutine);
 		mm_list_unlink(&reader->link);
 	}
 }
@@ -73,7 +74,7 @@ void mm_signalmgr_free(mm_signalmgr_t *mgr, mm_loop_t *loop)
 	mgr->fd.fd = -1;
 }
 
-int mm_signalmgr_set(mm_signalmgr_t *mgr, sigset_t *set)
+int mm_signalmgr_set(mm_signalmgr_t *mgr, sigset_t *set, sigset_t *ignore)
 {
 	int rc;
 	rc = signalfd(mgr->fd.fd, set, SFD_NONBLOCK);
@@ -84,6 +85,7 @@ int mm_signalmgr_set(mm_signalmgr_t *mgr, sigset_t *set)
 	sigfillset(&mask);
 	pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
 	pthread_sigmask(SIG_BLOCK, set, NULL);
+	pthread_sigmask(SIG_BLOCK, ignore, NULL);
 	return 0;
 }
 
@@ -101,7 +103,7 @@ int mm_signalmgr_wait(mm_signalmgr_t *mgr, uint32_t time_ms)
 
 	if (reader.call.status != 0) {
 		/* timedout or cancel */
-		if (! reader.signal) {
+		if (!reader.signal) {
 			assert(mgr->readers_count > 0);
 			mgr->readers_count--;
 			mm_list_unlink(&reader.link);
@@ -113,14 +115,12 @@ int mm_signalmgr_wait(mm_signalmgr_t *mgr, uint32_t time_ms)
 	return reader.signal;
 }
 
-MACHINE_API int
-machine_signal_init(sigset_t *set)
+MACHINE_API int machine_signal_init(sigset_t *set, sigset_t *ignore)
 {
-	return mm_signalmgr_set(&mm_self->signal_mgr, set);
+	return mm_signalmgr_set(&mm_self->signal_mgr, set, ignore);
 }
 
-MACHINE_API int
-machine_signal_wait(uint32_t time_ms)
+MACHINE_API int machine_signal_wait(uint32_t time_ms)
 {
 	return mm_signalmgr_wait(&mm_self->signal_mgr, time_ms);
 }

@@ -4,8 +4,7 @@
 
 static int csw = 0;
 
-static void
-csw_worker(void *arg)
+static void csw_worker(void *arg)
 {
 	(void)arg;
 	while (csw < 100000) {
@@ -14,8 +13,7 @@ csw_worker(void *arg)
 	}
 }
 
-static void
-csw_runner(void *arg)
+static void csw_runner(void *arg)
 {
 	(void)arg;
 	int rc;
@@ -26,11 +24,10 @@ csw_runner(void *arg)
 	test(rc != -1);
 	test(csw == 100000);
 
-	machine_stop();
+	machine_stop_current();
 }
 
-void
-machinarium_test_context_switch(void)
+void machinarium_test_context_switch(void)
 {
 	machinarium_init();
 

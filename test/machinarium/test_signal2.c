@@ -7,8 +7,7 @@
 
 static int hits = 0;
 
-static void
-coroutine_2(void *arg)
+static void coroutine_2(void *arg)
 {
 	(void)arg;
 	int rc;
@@ -17,16 +16,18 @@ coroutine_2(void *arg)
 	hits++;
 }
 
-static void
-coroutine(void *arg)
+static void coroutine(void *arg)
 {
 	(void)arg;
 	sigset_t mask;
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGINT);
 
+	sigset_t ignore;
+	sigemptyset(&ignore);
+
 	int rc;
-	rc = machine_signal_init(&mask);
+	rc = machine_signal_init(&mask, &ignore);
 	test(rc == 0);
 
 	int64_t id;
@@ -47,8 +48,7 @@ coroutine(void *arg)
 	test(hits == 2);
 }
 
-void
-machinarium_test_signal2(void)
+void machinarium_test_signal2(void)
 {
 	sigset_t mask;
 	sigemptyset(&mask);

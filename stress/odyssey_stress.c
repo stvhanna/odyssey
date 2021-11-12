@@ -3,7 +3,7 @@
  * Odyssey.
  *
  * Scalable PostgreSQL connection pooler.
-*/
+ */
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -43,8 +43,8 @@ static stress_t stress;
 static od_histogram_t stress_histogram;
 static int stress_run;
 
-static inline void
-stress_client_main(void *arg) {
+static inline void stress_client_main(void *arg)
+{
 	stress_client_t *client = arg;
 
 	/* create client io */
@@ -55,12 +55,13 @@ stress_client_main(void *arg) {
 	}
 
 	machine_set_nodelay(client->io.io, 1);
-	machine_set_keepalive(client->io.io, 1, 7200);
+	machine_set_keepalive(client->io.io, 1, 7200, 75, 9, 0);
 
 	/* resolve host */
 	struct addrinfo *ai = NULL;
 	int rc;
-	rc = machine_getaddrinfo(stress.host, stress.port, NULL, &ai, UINT32_MAX);
+	rc = machine_getaddrinfo(stress.host, stress.port, NULL, &ai,
+				 UINT32_MAX);
 	if (rc == -1) {
 		printf("client %d: failed to resolve host\n", client->id);
 		return;
@@ -77,12 +78,10 @@ stress_client_main(void *arg) {
 	printf("client %d: connected\n", client->id);
 
 	/* handle client startup */
-	kiwi_fe_arg_t argv[] = {
-			{"user",        5},
-			{stress.user,   strlen(stress.user) + 1},
-			{"database",    9},
-			{stress.dbname, strlen(stress.dbname) + 1}
-	};
+	kiwi_fe_arg_t argv[] = { { "user", 5 },
+				 { stress.user, strlen(stress.user) + 1 },
+				 { "database", 9 },
+				 { stress.dbname, strlen(stress.dbname) + 1 } };
 
 	machine_msg_t *msg;
 	msg = kiwi_fe_write_startup_message(NULL, 4, argv);
@@ -109,10 +108,12 @@ stress_client_main(void *arg) {
 			printf("read error");
 			return;
 		}
-		kiwi_be_type_t type = *(char *) machine_msg_data(msg);
+		kiwi_be_type_t type = *(char *)machine_msg_data(msg);
 
 		if (type == KIWI_BE_ERROR_RESPONSE) {
-			printf("Error response: %s\n", (char*)machine_msg_data(msg) + 5);
+			printf("Error response: %s\n",
+			       (char *)machine_msg_data(msg) + 5);
+			machine_msg_free(msg);
 			return;
 		}
 		machine_msg_free(msg);
@@ -145,19 +146,22 @@ stress_client_main(void *arg) {
 		for (;;) {
 			msg = od_read(&client->io, INT32_MAX);
 			if (msg == NULL) {
-				printf("client %d: read error: %s\n", client->id,
+				printf("client %d: read error: %s\n",
+				       client->id,
 				       machine_error(client->io.io));
 				return;
 			}
-			char type = *(char *) machine_msg_data(msg);
+			char type = *(char *)machine_msg_data(msg);
 			machine_msg_free(msg);
 
 			if (type == KIWI_BE_ERROR_RESPONSE)
 				break;
 
 			if (type == KIWI_BE_READY_FOR_QUERY) {
-				int execution_time = od_histogram_time_us() - start_time;
-				od_histogram_add(&stress_histogram, execution_time);
+				int execution_time =
+					od_histogram_time_us() - start_time;
+				od_histogram_add(&stress_histogram,
+						 execution_time);
 				client->processed++;
 				break;
 			}
@@ -176,11 +180,12 @@ stress_client_main(void *arg) {
 	}
 
 	machine_close(client->io.io);
-	printf("client %d: done (%d processed)\n", client->id, client->processed);
+	printf("client %d: done (%d processed)\n", client->id,
+	       client->processed);
 }
 
-static inline void
-stress_main(void *arg) {
+static inline void stress_main(void *arg)
+{
 	stress_t *stress = arg;
 
 	stress_client_t *clients;
@@ -195,7 +200,8 @@ stress_main(void *arg) {
 	for (; i < stress->clients; i++) {
 		stress_client_t *client = &clients[i];
 		client->id = i;
-		client->coroutine_id = machine_coroutine_create(stress_client_main, client);
+		client->coroutine_id =
+			machine_coroutine_create(stress_client_main, client);
 	}
 
 	/* give time for work */
@@ -213,10 +219,12 @@ stress_main(void *arg) {
 	free(clients);
 
 	/* result */
-	od_histogram_print(&stress_histogram, stress->clients, stress->time_to_run);
+	od_histogram_print(&stress_histogram, stress->clients,
+			   stress->time_to_run);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	od_histogram_init(&stress_histogram);
 	memset(&stress, 0, sizeof(stress));
 	stress_run = 0;
@@ -233,41 +241,41 @@ int main(int argc, char *argv[]) {
 	int opt;
 	while ((opt = getopt(argc, argv, "d:u:h:p:t:c:")) != -1) {
 		switch (opt) {
-			/* database */
-			case 'd':
-				stress.dbname = optarg;
-				break;
-				/* user */
-			case 'u':
-				stress.user = optarg;
-				break;
-				/* host */
-			case 'h':
-				stress.host = optarg;
-				break;
-				/* port */
-			case 'p':
-				stress.port = optarg;
-				break;
-				/* time */
-			case 't':
-				stress.time_to_run = atoi(optarg);
-				break;
-				/* clients */
-			case 'c':
-				stress.clients = atoi(optarg);
-				break;
-			default:
-				printf("PostgreSQL benchmarking.\n\n");
-				printf("usage: %s [duhptc]\n", argv[0]);
-				printf("  \n");
-				printf("  -d <database>   database name\n");
-				printf("  -u <user>       user name\n");
-				printf("  -h <host>       server address\n");
-				printf("  -p <port>       server port\n");
-				printf("  -t <time>       time to run (seconds)\n");
-				printf("  -c <clients>    number of clients\n");
-				return 1;
+		/* database */
+		case 'd':
+			stress.dbname = optarg;
+			break;
+			/* user */
+		case 'u':
+			stress.user = optarg;
+			break;
+			/* host */
+		case 'h':
+			stress.host = optarg;
+			break;
+			/* port */
+		case 'p':
+			stress.port = optarg;
+			break;
+			/* time */
+		case 't':
+			stress.time_to_run = atoi(optarg);
+			break;
+			/* clients */
+		case 'c':
+			stress.clients = atoi(optarg);
+			break;
+		default:
+			printf("PostgreSQL benchmarking.\n\n");
+			printf("usage: %s [duhptc]\n", argv[0]);
+			printf("  \n");
+			printf("  -d <database>   database name\n");
+			printf("  -u <user>       user name\n");
+			printf("  -h <host>       server address\n");
+			printf("  -p <port>       server port\n");
+			printf("  -t <time>       time to run (seconds)\n");
+			printf("  -c <clients>    number of clients\n");
+			return 1;
 		}
 	}
 
@@ -285,8 +293,8 @@ int main(int argc, char *argv[]) {
 	int64_t machine;
 	machine = machine_create("stresser", stress_main, &stress);
 
-	machine_wait(machine);
+	int rc = machine_wait(machine);
 
 	machinarium_free();
-	return 0;
+	return rc;
 }

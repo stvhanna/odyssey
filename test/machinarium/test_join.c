@@ -2,22 +2,19 @@
 #include <machinarium.h>
 #include <odyssey_test.h>
 
-static void
-test_child_a(void *arg)
+static void test_child_a(void *arg)
 {
 	(void)arg;
 	machine_sleep(100);
 }
 
-static void
-test_child_b(void *arg)
+static void test_child_b(void *arg)
 {
 	(void)arg;
 	machine_sleep(300);
 }
 
-static void
-test_waiter(void *arg)
+static void test_waiter(void *arg)
 {
 	(void)arg;
 
@@ -35,11 +32,10 @@ test_waiter(void *arg)
 	rc = machine_join(b);
 	test(rc == 0);
 
-	machine_stop();
+	machine_stop_current();
 }
 
-void
-machinarium_test_join(void)
+void machinarium_test_join(void)
 {
 	machinarium_init();
 

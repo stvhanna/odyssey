@@ -4,8 +4,7 @@
 
 static machine_channel_t *channel;
 
-static void
-test_coroutine2(void *arg)
+static void test_coroutine2(void *arg)
 {
 	(void)arg;
 	machine_msg_t *msg;
@@ -14,8 +13,7 @@ test_coroutine2(void *arg)
 	test(machine_cancelled());
 }
 
-static void
-test_coroutine(void *arg)
+static void test_coroutine(void *arg)
 {
 	(void)arg;
 	channel = machine_channel_create(0);
@@ -24,14 +22,14 @@ test_coroutine(void *arg)
 	int id;
 	id = machine_coroutine_create(test_coroutine2, NULL);
 	machine_sleep(0);
-	machine_cancel(id);
+	int rc = machine_cancel(id);
+	test(rc == 0);
 	machine_join(id);
 
 	machine_channel_free(channel);
 }
 
-void
-machinarium_test_channel_cancel(void)
+void machinarium_test_channel_cancel(void)
 {
 	machinarium_init();
 

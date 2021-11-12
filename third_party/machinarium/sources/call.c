@@ -3,13 +3,12 @@
  * machinarium.
  *
  * cooperative multitasking engine.
-*/
+ */
 
 #include <machinarium.h>
 #include <machinarium_private.h>
 
-static void
-mm_call_timer_cb(mm_timer_t *handle)
+static void mm_call_timer_cb(mm_timer_t *handle)
 {
 	mm_call_t *call = handle->arg;
 	call->timedout = 1;
@@ -18,8 +17,7 @@ mm_call_timer_cb(mm_timer_t *handle)
 		mm_scheduler_wakeup(&mm_self->scheduler, call->coroutine);
 }
 
-static void
-mm_call_cancel_cb(void *obj, void *arg)
+static void mm_call_cancel_cb(void *obj, void *arg)
 {
 	mm_call_t *call = arg;
 	(void)obj;

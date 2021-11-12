@@ -6,10 +6,9 @@
 
 mm_sleeplock_t global_lock;
 
-static void
-test_coroutine(void *arg)
+static void test_coroutine(void *arg)
 {
-	uint64_t* value = (uint64_t*)arg;
+	uint64_t *value = (uint64_t *)arg;
 	for (int i = 0; i < (1 << 22); i++) {
 		mm_sleeplock_lock(&global_lock);
 		(*value)++;
@@ -17,8 +16,7 @@ test_coroutine(void *arg)
 	}
 }
 
-void
-machinarium_test_sleeplock(void)
+void machinarium_test_sleeplock(void)
 {
 	machinarium_init();
 

@@ -60,6 +60,15 @@ set(od_test_src
     machinarium/test_tls_read_10mb2.c
     machinarium/test_tls_read_multithread.c
     machinarium/test_tls_read_var.c
+        ../sources/attribute.c
+        ../sources/tdigest.c
+        ../sources/util.h
+        ../sources/build.h
+        ../sources/debugprintf.h
+        odyssey/test_attribute.c
+        odyssey/test_tdigest.c
+        odyssey/test_util.c
+        odyssey/test_locks.c
    )
 
 file(COPY machinarium/ca.crt DESTINATION machinarium)
@@ -68,24 +77,22 @@ file(COPY machinarium/client.key DESTINATION machinarium)
 file(COPY machinarium/server.crt DESTINATION machinarium)
 file(COPY machinarium/server.key DESTINATION machinarium)
 
-file(COPY odyssey/config DESTINATION odyssey)
-file(COPY odyssey/environment.sh DESTINATION odyssey)
-file(COPY odyssey/setup.sh DESTINATION odyssey)
-file(COPY odyssey/teardown.sh DESTINATION odyssey)
-file(COPY odyssey/test_scram_backend.sh DESTINATION odyssey)
-file(COPY odyssey/test_scram_frontend.sh DESTINATION odyssey)
-
 include_directories("${PROJECT_SOURCE_DIR}/")
+include_directories("${PROJECT_SOURCE_DIR}/sources/")
 include_directories("${PROJECT_BINARY_DIR}/")
 include_directories("${PROJECT_SOURCE_DIR}/test")
 include_directories("${PROJECT_BINARY_DIR}/test")
 
 add_executable(${od_test_binary} ${od_test_src})
-add_dependencies(${od_test_binary} build_libs)
+add_dependencies(${od_test_binary} build_libs odyssey)
 
 if(THREADS_HAVE_PTHREAD_ARG)
     set_property(TARGET ${od_test_binary} PROPERTY COMPILE_OPTIONS "-pthread")
     set_property(TARGET ${od_test_binary} PROPERTY INTERFACE_COMPILE_OPTIONS "-pthread")
 endif()
 
-target_link_libraries(${od_test_binary} ${od_libraries} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${od_test_binary} ${od_libraries} ${CMAKE_THREAD_LIBS_INIT} m)
+
+if (BUILD_COMPRESSION)
+    target_link_libraries(${od_test_binary} ${compression_libraries})
+endif()
